@@ -1,56 +1,107 @@
+import metadata_value_type as mvt
 import sys
-import struct
+
+
 def check_byte_type():
     return sys.byteorder
 
-MODEL_DIR='model/'
+
 ENDIAN = check_byte_type()
-MODEL=f"{MODEL_DIR}phi-2.Q2_K.gguf"
+MODEL_DIR = "model/"
+MODEL = f"{MODEL_DIR}phi-2.Q2_K.gguf"
 
 
+class Header:
+    MAGIC_NUMBER = None
+    VERSION = None
+    tensor_count = None
+    metadata_kv_count = None
 
-def parse_string(model):
-    metadata_string_len = int.from_bytes(model.read(8), byteorder=ENDIAN)
-    metadata_string = model.read(metadata_string_len)
-    print(f"{metadata_string_len=}")
-    print(f"{metadata_string=}")
+    @classmethod
+    def read_header(cls, model):
+        cls.MAGIC_NUMBER = model.read(4).decode()
+        cls.VERSION = int.from_bytes(model.read(4), byteorder=ENDIAN)
+        cls.tensor_count = int.from_bytes(model.read(8), byteorder=ENDIAN)
+        cls.metadata_kv_count = int.from_bytes(model.read(8), byteorder=ENDIAN)
 
-with open(MODEL, mode='rb') as model:
-    MAGIC_NUMBER = model.read(4)
-    VERSION = int.from_bytes(model.read(4), byteorder=ENDIAN)
-    tensor_count = int.from_bytes(model.read(8), byteorder=ENDIAN)
-    metadata_kv_count = int.from_bytes(model.read(8), byteorder=ENDIAN)
-    print(f"{MAGIC_NUMBER=}")
-    print(f"{VERSION=}")
-    print(f"{tensor_count=}")
-    print(f"{metadata_kv_count=}")
+    @classmethod
+    def print_header(cls):
+        print(f"MAGIC_NUMBER = {cls.MAGIC_NUMBER}")
+        print(f"VERSION = {cls.VERSION}")
+        print(f"tensor_count = {cls.tensor_count}")
+        print(f"metadata_kv_count = {cls.metadata_kv_count}")
 
-    for _ in range(metadata_kv_count):
+
+class Metadata_parser:
+    def __init__(self): ...
+
+    def read_string(self, model):
         # get string_t values
-        string_len = int.from_bytes(model.read(8), byteorder=ENDIAN)
-        string = model.read(string_len).decode('utf-8')
-        metadata_value_type = int.from_bytes(model.read(4), byteorder=ENDIAN)
-        print('--'*35)
-        # print(f"{string_len=}")
-        print(f"{string=}")
-        print(f"{metadata_value_type=}")
+        self.string_len = int.from_bytes(model.read(8), byteorder=ENDIAN)
+        self.string = model.read(self.string_len).decode("utf-8")
+        self.metadata_value_type = int.from_bytes(model.read(4), byteorder=ENDIAN)
 
-        # if statement should be added
+    def print_string(self):
+        print(f"{self.string=}")
+        print(f"{self.metadata_value_type=}")
+
+
+class Metadata_Value_handler:
+    value_pairs = {}
+
+    def __init__(self, model):
+        self.model = model
+
+    def handle_value_type(self, metadata_parser: Metadata_parser):
+        key = metadata_parser.string
+        metadata_value_type = metadata_parser.metadata_value_type
+
         match metadata_value_type:
             case 4:
-                # The value is a 32 bit unsigned little-endian integer
-                print(f"metadata_int_value={int.from_bytes(model.read(4), byteorder=ENDIAN)}")
+                int_32_handler = mvt.GGUF_METADATA_VALUE_TYPE_UINT32(
+                    key, self.model, ENDIAN, metadata_value_type
+                )
+                print(int_32_handler)
 
             case 6:
-                # value is 32 bit IEEE754 floating point number
-               float_value = struct.unpack('<f',model.read(4))[0]
-               print(f'metadata_float_value={float_value}')
+                float_32_handler = mvt.GGUF_METADATA_VALUE_TYPE_FLOAT32(
+                    key, self.model, ENDIAN, metadata_value_type
+                )
+                print(float_32_handler)
+
             case 7:
                 # value is a boolean with 1-byte len
-                boolean_value = int.from_bytes(model.read(1), byteorder=ENDIAN)
-                print(f"{boolean_value=}")
+                boolean_handler = mvt.GGUF_METADATA_VALUE_TYPE_BOOL(
+                    key, self.model, ENDIAN, metadata_value_type
+                )
+                print(boolean_handler)
+
             case 8:
-                # value is UTF-8 non-null-terminated string with length prepended
-                parse_string(model)
+                string_handler = mvt.GGUF_METADATA_VALUE_TYPE_STRING(
+                    key, self.model, ENDIAN, metadata_value_type
+                )
+                print(string_handler)
+            case 9:
+                # Array is stored here
+                array_handler = mvt.GGUF_METADATA_VALUE_TYPE_ARRAY(
+                    key, self.model, ENDIAN, metadata_value_type
+                )
+                tokens = array_handler.read()
+                print(tokens[-1:-5:-1])
             case _:
-                raise Exception('Not implemented')
+                raise Exception("Not implemented")
+
+
+with open(MODEL, mode="rb") as model:
+    Header.read_header(model)
+    Header.print_header()
+
+    for i, _ in enumerate(range(Header.metadata_kv_count)):
+        r = Metadata_parser()
+        r.read_string(model)
+        print("--" * 10)
+        # print(f"{i=}")
+        r.print_string()
+
+        metadata_value_handler = Metadata_Value_handler(model)
+        metadata_value_handler.handle_value_type(r)
