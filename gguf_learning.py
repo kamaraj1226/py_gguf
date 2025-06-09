@@ -1,12 +1,12 @@
 import metadata_value_type as mvt
 import sys
-
+from constants import ENDIAN
 
 def check_byte_type():
     return sys.byteorder
 
 
-ENDIAN = check_byte_type()
+# ENDIAN = check_byte_type()
 MODEL_DIR = "model/"
 MODEL = f"{MODEL_DIR}phi-2.Q2_K.gguf"
 
@@ -95,13 +95,11 @@ class Metadata_Value_handler:
 with open(MODEL, mode="rb") as model:
     Header.read_header(model)
     Header.print_header()
+    handler = mvt.Metadata_parser(model)
 
     for i, _ in enumerate(range(Header.metadata_kv_count)):
-        r = Metadata_parser()
-        r.read_string(model)
         print("--" * 10)
-        # print(f"{i=}")
-        r.print_string()
 
-        metadata_value_handler = Metadata_Value_handler(model)
-        metadata_value_handler.handle_value_type(r)
+        handler.handle_case()
+        # metadata_value_handler = Metadata_Value_handler(model)
+        # metadata_value_handler.handle_value_type(r)
