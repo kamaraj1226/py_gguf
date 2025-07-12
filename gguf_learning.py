@@ -2,6 +2,7 @@ import metadata_value_type as mvt
 import sys
 from constants import ENDIAN
 
+
 def check_byte_type():
     return sys.byteorder
 
@@ -49,8 +50,9 @@ class Metadata_parser:
 class Metadata_Value_handler:
     value_pairs = {}
 
-    def __init__(self, model):
+    def __init__(self, model, debug=False):
         self.model = model
+        self.debug = debug
 
     def handle_value_type(self, metadata_parser: Metadata_parser):
         key = metadata_parser.string
@@ -61,41 +63,46 @@ class Metadata_Value_handler:
                 int_32_handler = mvt.GGUF_METADATA_VALUE_TYPE_UINT32(
                     key, self.model, ENDIAN, metadata_value_type
                 )
-                print(int_32_handler)
+                if self.debug:
+                    print(int_32_handler)
 
             case 6:
                 float_32_handler = mvt.GGUF_METADATA_VALUE_TYPE_FLOAT32(
                     key, self.model, ENDIAN, metadata_value_type
                 )
-                print(float_32_handler)
+                if self.debug:
+                    print(float_32_handler)
 
             case 7:
                 # value is a boolean with 1-byte len
                 boolean_handler = mvt.GGUF_METADATA_VALUE_TYPE_BOOL(
                     key, self.model, ENDIAN, metadata_value_type
                 )
-                print(boolean_handler)
+                if self.debug:
+                    print(boolean_handler)
 
             case 8:
                 string_handler = mvt.GGUF_METADATA_VALUE_TYPE_STRING(
                     key, self.model, ENDIAN, metadata_value_type
                 )
-                print(string_handler)
+                if self.debug:
+                    print(string_handler)
             case 9:
                 # Array is stored here
                 array_handler = mvt.GGUF_METADATA_VALUE_TYPE_ARRAY(
                     key, self.model, ENDIAN, metadata_value_type
                 )
                 tokens = array_handler.read()
-                print(tokens[-1:-5:-1])
+                if self.debug:
+                    print(tokens[-1:-5:-1])
             case _:
                 raise Exception("Not implemented")
 
 
 with open(MODEL, mode="rb") as model:
     Header.read_header(model)
-    Header.print_header()
-    handler = mvt.Metadata_parser(model)
+    # Header.print_header()
+    handler = mvt.Metadata_parser(model, debug=True)
 
     for i, _ in enumerate(range(Header.metadata_kv_count)):
         print("--" * 10)

@@ -1,6 +1,7 @@
 import sys
 
-def check_byte_type()->str:
+
+def check_byte_type() -> str:
     """
     Helper:
         will help to identify if the system uses little-endian or big-endian
