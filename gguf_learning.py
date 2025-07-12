@@ -47,66 +47,12 @@ class Metadata_parser:
         print(f"{self.metadata_value_type=}")
 
 
-class Metadata_Value_handler:
-    value_pairs = {}
-
-    def __init__(self, model, debug=False):
-        self.model = model
-        self.debug = debug
-
-    def handle_value_type(self, metadata_parser: Metadata_parser):
-        key = metadata_parser.string
-        metadata_value_type = metadata_parser.metadata_value_type
-
-        match metadata_value_type:
-            case 4:
-                int_32_handler = mvt.GGUF_METADATA_VALUE_TYPE_UINT32(
-                    key, self.model, ENDIAN, metadata_value_type
-                )
-                if self.debug:
-                    print(int_32_handler)
-
-            case 6:
-                float_32_handler = mvt.GGUF_METADATA_VALUE_TYPE_FLOAT32(
-                    key, self.model, ENDIAN, metadata_value_type
-                )
-                if self.debug:
-                    print(float_32_handler)
-
-            case 7:
-                # value is a boolean with 1-byte len
-                boolean_handler = mvt.GGUF_METADATA_VALUE_TYPE_BOOL(
-                    key, self.model, ENDIAN, metadata_value_type
-                )
-                if self.debug:
-                    print(boolean_handler)
-
-            case 8:
-                string_handler = mvt.GGUF_METADATA_VALUE_TYPE_STRING(
-                    key, self.model, ENDIAN, metadata_value_type
-                )
-                if self.debug:
-                    print(string_handler)
-            case 9:
-                # Array is stored here
-                array_handler = mvt.GGUF_METADATA_VALUE_TYPE_ARRAY(
-                    key, self.model, ENDIAN, metadata_value_type
-                )
-                tokens = array_handler.read()
-                if self.debug:
-                    print(tokens[-1:-5:-1])
-            case _:
-                raise Exception("Not implemented")
-
-
 with open(MODEL, mode="rb") as model:
     Header.read_header(model)
     # Header.print_header()
-    handler = mvt.Metadata_parser(model, debug=True)
+    handler = mvt.Metadata_parser(model, debug=False)
 
     for i, _ in enumerate(range(Header.metadata_kv_count)):
         print("--" * 10)
 
         handler.handle_case()
-        # metadata_value_handler = Metadata_Value_handler(model)
-        # metadata_value_handler.handle_value_type(r)
