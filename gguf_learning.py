@@ -52,7 +52,5 @@ with open(MODEL, mode="rb") as model:
     # Header.print_header()
     handler = mvt.Metadata_parser(model, debug=False)
 
-    for i, _ in enumerate(range(Header.metadata_kv_count)):
-        print("--" * 10)
-
+    for _ in range(Header.metadata_kv_count):
         handler.handle_case()

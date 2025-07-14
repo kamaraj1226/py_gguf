@@ -182,6 +182,7 @@ class GGUF_METADATA_VALUE_TYPE_UINT64(Metadata_KV):
 
 class GGUF_METADATA_VALUE_TYPE_ARRAY(Metadata_KV):
     """
+    TODO!
     Need to read manually
     Auto read is not available because array size can be huge
     """
@@ -211,7 +212,6 @@ class GGUF_METADATA_VALUE_TYPE_ARRAY(Metadata_KV):
         array_length = int.from_bytes(self.model.read(8), byteorder=ENDIAN)
         tokens = []
         parser = Metadata_parser(self.model)
-        print("handling array", array_length)
         for _ in range(array_length):
             match array_value_type:
                 case MetadataType.GGUF_METADATA_VALUE_TYPE_STRING:
@@ -227,7 +227,7 @@ class GGUF_METADATA_VALUE_TYPE_ARRAY(Metadata_KV):
                     raise Exception(
                         f"Not Implemented {MetadataType(array_value_type)} TODO: dynamic type handling"
                     )
-        print("array value", len(tokens))
+        self.value = tokens.copy()
         return tokens
 
     def __str__(self):
