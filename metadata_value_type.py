@@ -294,8 +294,6 @@ class Metadata_parser:
                     key, self.model, metadata_value_type
                 )
                 tokens = array_handler.read()
-                print("Array tokens")
-                print(tokens[-1:-5:-1])
                 if len(tokens) <= 0:
                     raise Exception("Tokens are empty")
 
